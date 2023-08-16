@@ -1,3 +1,7 @@
+import psycopg2 # pip3 install psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+
 from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException
 from fastapi.params import Body
@@ -7,23 +11,39 @@ from random import randrange
 app = FastAPI()
 
 # Using pydantic to set the Schema of the data 
-class Post(BaseModel):# These is our schema and it returns an organised data 
+# in this schema if we put a string instead of an integer it will bring and error since it only
+# allows integer for rating options 
+class Post(BaseModel):
+    # These is our schema and it returns an organised data 
     title: str
     content: str
     published: bool = True
-    rating: Optional[int] = None 
-    # in this schema if we put a string instead of an integer it will bring and error since it only
-    # allows integer for rating options  
+
+   
+ # connecting to my postgress data base using connections 
+#  cursor_factory=RealDictCursor what this does is that it gives you the column name and it's values to 
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost', database='fastapi', user='postgres', 
+            password='ima12546', cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("Database connection was succesfull")
+        break
+    except Exception as error:
+        print("Connecting to database failed")
+        print("Error: ", error)
+        time.sleep(2)
+
+
 
 
 # using memory in storing our informations 
-
 my_posts = [
-    
     {"title": "This is the first", "content":"this is the body of the content", "id": 0},
     {"title": "The river of Babylon", "content":"the river that fed the israelites", "id":1}
-    
     ]
+
+
 # we want to retreive the information from the backend and update it back 
 def find_post(id):
     for p in my_posts:
@@ -85,10 +105,12 @@ def update_post(id: int, post: Post):
 
 
 
-
+#getting all the posts from my database postgress 
 @app.get("/posts")
 def get_post():
-    return {"data": my_posts}
+    cursor.execute(""" SELECT * FROM posts """)
+    posts = cursor.fetchall()
+    return {"data": posts}
 
 
 
