@@ -1,14 +1,51 @@
-import psycopg2 # pip3 install psycopg2
+import psycopg2 # pip3 install psycopg3
 from psycopg2.extras import RealDictCursor
 import time
 
 from typing import Optional
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import Depends, FastAPI, Response, status, HTTPException
 from fastapi.params import Body
 from pydantic import BaseModel
 from random import randrange
 
+from .import models
+from sqlalchemy.orm import Session
+from .database import engine, SessionLocal, get_db
+from sqlalchemy.orm import Session as DBSession
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
+
+#dependacy connection to our database
+
+
+@app.get("/sqlalchemy")
+def test_post(db: Session = Depends(get_db)):
+    return {"status": "success"}
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Using pydantic to set the Schema of the data 
 # in this schema if we put a string instead of an integer it will bring and error since it only
