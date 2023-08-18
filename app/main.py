@@ -60,47 +60,93 @@ def find_index_post(id):
         
 # creating the post
 # since this is a create function we should get a 201 status code for creation 
+# @app.post("/posts", status_code=status.HTTP_201_CREATED)
+# def create_post(post:Post):
+#     post_dict = post.dict()
+#     post_dict['id'] = randrange(0, 100000000)
+#     my_posts.append(post_dict)
+#     return {"data": post}
+
+# creating the post method using the postgress database 
+# if something has a default it not advisable to include it in your create post from the postgress 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post:Post):
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0, 100000000)
-    my_posts.append(post_dict)
-    return {"data": post}
-
-
+    cursor.execute("""INSERT INTO posts (title, content) VALUES
+        (%s, %s) RETURNING * """,(post.title, post.content))
+    new_post = cursor.fetchone()
+    conn.commit()
+    return {"data": new_post}
 
 # here we are retriving a single post the informations form the backend 
 # Using HttPException is the best way for validation of our codes 
+
+# @app.get("/posts/{id}")
+# def get_post(id: int):
+#     post = find_post(id)
+#     if not post:
+#         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, 
+#                             detail=f"post with id: {id} was not found")
+#     return {"post_details": post}
+
+# fetching a single post from the database using id 
+
 @app.get("/posts/{id}")
 def get_post(id: int):
-    post = find_post(id)
+    cursor.execute("""SELECT * FROM posts WHERE id = %s""", (str(id)))
+    post = cursor.fetchone()
     if not post:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, 
-                            detail=f"post with id: {id} was not found")
-    return {"post_details": post}
+            detail=f"post with id: {id} was not found")
+    return {"post_detail":post }    
+    
  
 
 # Deleting a particular post in django 
-@app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
-def delele_post(id: int):
-    index = find_index_post(id)
-    if index == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    my_posts.pop(index)
-    return{"message": 'post was successfullt deleted'}
+# @app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
+# def delele_post(id: int):
+#     index = find_index_post(id)
+#     if index == None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+#     my_posts.pop(index)
+#     return{"message": 'post was successfullt deleted'}
 
+
+# deleting a post from postgresss 
+@app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
+def post_delete(id: int):
+    cursor.execute("""DELETE FROM posts WHERE id = %s returning * """, (str(id)),)
+    deleted_post = cursor.fetchone()
+    conn.commit()
+    if deleted_post == None:
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return{"message": 'post deleted succesfully'}
 
 # Updating a post in the application programming interface
+# @app.put("/posts/{id}")
+# def update_post(id: int, post: Post):
+#     index = find_index_post(id)
+#     if index == None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    
+#     post_dict = post.dict()
+#     post_dict['id'] = id
+#     my_posts[index] = post_dict     
+#     return {"data": post_dict}
+
+
+# updating our post from the postgress 
+
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
-    index = find_index_post(id)
-    if index == None:
+    cursor.execute(""" UPDATE posts SET title= %s, content=%s  WHERE id = %s RETURNING * """,
+        (post.title, post.content, str(id)))
+    updated_post = cursor.fetchone()
+    conn.commit()
+    if updated_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    
-    post_dict = post.dict()
-    post_dict['id'] = id
-    my_posts[index] = post_dict     
-    return {"data": post_dict}
+    return {"data": updated_post}
+ 
+
     
 
 
